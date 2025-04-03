@@ -4,8 +4,6 @@ Welcome to the Pay-i Quickstarts repository! This repository contains examples a
 
 ## 🚀 Quickstart
 
-Route your GenAI provider calls through Pay-i to automatically track costs, manage limits, analyze usage patterns, and much more!
-
 ### 1️⃣ Install SDK
 
 ```bash
@@ -50,7 +48,7 @@ print(response.choices[0].message.content)
 
 > 💡 **Tip**
 >
-> Looking for more features? Check out our [Quickstart Demo](./quickstarts/) for limits, analytics tags, streaming, and more.
+> Looking for more features? Check out our [Quickstart Walkthrough](https://docs.pay-i.com/docs/quickstart-demo) for limits, analytics tags, streaming, and more.
 
 ## 📚 Example Notebooks
 
@@ -68,11 +66,11 @@ For detailed guides on configuring Pay-i with different GenAI providers, check o
 
 ## 🧩 Decorators
 
-Our Python SDK provides decorators that make it easy to use Pay-i with Python applications, letting you annotate your functions with metadata that gets passed to Pay-i. See our [decorator examples](./examples/decorators/) for more information.
+Our Python SDK provides decorators that make it easy to use Pay-i with Python applications, letting you annotate your functions with metadata that gets passed to Pay-i. See our [decorator examples](https://docs.pay-i.com/docs/inheritable-decorators) for more information.
 
 ## 📊 Additional Resources
 
-- [Pay-i Documentation](https://docs.pay-i.com/docs)
+- [Pay-i Documentation](https://docs.pay-i.com)
 - [Pay-i API Reference](https://docs.pay-i.com/reference/)
 - [Support](mailto:support@pay-i.com)
 
