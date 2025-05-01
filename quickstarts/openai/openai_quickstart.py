@@ -1,10 +1,12 @@
 import os
-from datetime import datetime
+from dotenv import load_dotenv
 
 # Import required libraries
 from openai import OpenAI
 from payi import Payi
-from payi.lib.helpers import payi_openai_url, create_headers
+from payi.lib.helpers import payi_openai_url, create_headers, PayiHeaderNames
+
+load_dotenv()
 
 # API Keys (from environment variables)
 # Replace with your actual API keys or use environment variables
@@ -18,7 +20,7 @@ payi_client = Payi(api_key=PAYI_API_KEY)
 openai_client = OpenAI(
     api_key=OPENAI_API_KEY,
     base_url=payi_openai_url(),  # Uses Pay-i as proxy
-    default_headers={"xProxy-api-key": PAYI_API_KEY}  # Authenticates with Pay-i
+    default_headers={PayiHeaderNames.api_key: PAYI_API_KEY}  # Authenticates with Pay-i
 )
 
 # Create a limit (optional)
@@ -30,11 +32,11 @@ try:
     )
     limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
 except Exception as e:
-    limit_id = None
+    exit(f"Error creating limit: {e}")
 
 # Create request tags for custom analytics and track costs against limit
 tags = ["standard-request"]
-headers = create_headers(request_tags=tags, limit_ids=[limit_id] if limit_id else None)
+headers = create_headers(request_tags=tags, limit_ids=[limit_id])
 
 # Make a standard API call, just like we would with regular OpenAI
 response = openai_client.chat.completions.create(
@@ -43,7 +45,6 @@ response = openai_client.chat.completions.create(
     max_tokens=50,
     extra_headers=headers
 )
-
 
 # Print the result
 print("\nResponse:")
@@ -57,21 +58,17 @@ if hasattr(response, 'xproxy_result'):
     print(f"- Request ID: {request_id}")
     print(f"- Cost: ${cost_info}")
 
-if limit_id:
-    status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
+status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
+
+# Get the total cost from the limit status
+total_cost = status.limit.totals.cost.total.base        
+usage_percent = (total_cost / status.limit.max) * 100  # Calculate usage percentage
     
-    # Get the total cost from the limit status
-    total_cost = status.limit.totals.cost.total
-    if hasattr(total_cost, 'base'):
-        total_cost = total_cost.base  # Handle different cost object formats
-        
-    usage_percent = (total_cost / status.limit.max) * 100  # Calculate usage percentage
-    
-    print(f"✓ Current usage: ${total_cost:.6f} of ${status.limit.max:.2f} ({usage_percent:.2f}%)")
+print(f"✓ Current usage: ${total_cost:.6f} of ${status.limit.max:.2f} ({usage_percent:.2f}%)")
     
 # Tags for analytics and tracking against our limit
 tags = ["streaming-request"]
-headers = create_headers(request_tags=tags, limit_ids=[limit_id] if limit_id else None)
+headers = create_headers(request_tags=tags, limit_ids=[limit_id])
 
 # Make streaming request
 stream = openai_client.chat.completions.create(
@@ -81,7 +78,6 @@ stream = openai_client.chat.completions.create(
     stream=True,  # Enable streaming
     extra_headers=headers
 )
-
 
 # Process the streaming response
 print("\nStreaming response:")
@@ -95,17 +91,13 @@ for chunk in stream:
 print("\n---")
 
 # Check final limit status
-if limit_id:
-    status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
+status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
     
-    # Get the total cost from the limit status
-    total_cost = status.limit.totals.cost.total
-    if hasattr(total_cost, 'base'):
-        total_cost = total_cost.base  # Handle different cost object formats
-        
-    usage_percent = (total_cost / status.limit.max) * 100  # Calculate usage percentage
+# Get the total cost from the limit status
+total_cost = status.limit.totals.cost.total.base        
+usage_percent = (total_cost / status.limit.max) * 100  # Calculate usage percentage
     
-    print(f"\nChecking final limit status...")
-    print(f"✓ Final usage: ${total_cost:.6f} of ${status.limit.max:.2f} ({usage_percent:.2f}%)")
+print(f"\nChecking final limit status...")
+print(f"✓ Final usage: ${total_cost:.6f} of ${status.limit.max:.2f} ({usage_percent:.2f}%)")
 
 print("Now you can check your Pay-i dashboard to see detailed metrics and costs.")
