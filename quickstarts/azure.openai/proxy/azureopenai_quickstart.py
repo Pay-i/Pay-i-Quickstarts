@@ -23,13 +23,13 @@ payi_headers = {
     PayiHeaderNames.price_as_resource: os.getenv("AZURE_OPENAI_MODEL"),
 }
 
-if AZURE_OPENAI_DEPLOYMENT_TYPE is not None:
+if AZURE_OPENAI_DEPLOYMENT_TYPE:
     payi_headers[PayiHeaderNames.resource_scope] = AZURE_OPENAI_DEPLOYMENT_TYPE
 
 # Initialize Azure OpenAI client
 azure_client = AzureOpenAI(
     # Expected environment variables:
-    # - AZURE_OPENAI_API_KEY=51a..57
+    # - AZURE_OPENAI_API_KEY=...
     # - AZURE_OPENAI_ENDPOINT=https://openai-xx-eastus.openai.azure.com/
     # - OPENAI_API_VERSION=2024-02-15-preview
     azure_endpoint=payi_azure_openai_url(),
@@ -37,15 +37,12 @@ azure_client = AzureOpenAI(
 )
 
 # Create a limit (optional)
-try:
-    limit_name = "Azure QuickStart Limit"
-    limit_response = payi_client.limits.create(
-        limit_name=limit_name,
-        max=10.00  # $10 USD limit
-    )
-    limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
-except Exception as e:
-    exit(f"Error creating limit: {e}")
+limit_name = "Azure QuickStart Limit"
+limit_response = payi_client.limits.create(
+    limit_name=limit_name,
+    max=10.00  # $10 USD limit
+)
+limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
 
 # Make a standard API call, just like we would with regular Azure OpenAI
 with track_context(request_tags=["standard-request"], limit_ids=[limit_id]):

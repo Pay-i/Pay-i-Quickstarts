@@ -10,7 +10,6 @@ load_dotenv()
 
 # Initialize Pay-i client for limit management
 payi_client = Payi()  # Automatically uses PAYI_API_KEY environment variable
-payi_client = Payi()
 
 # Enable Pay-i instrumentation
 payi_instrument(config={"proxy": True})  # Automatically creates payi sync/async clients using environment variables
@@ -19,15 +18,12 @@ payi_instrument(config={"proxy": True})  # Automatically creates payi sync/async
 openai_client = OpenAI(base_url=payi_openai_url(), default_headers={PayiHeaderNames.api_key: os.getenv("PAYI_API_KEY")})
 
 # Create a limit (optional)
-try:
-    limit_name = "QuickStart Limit"
-    limit_response = payi_client.limits.create(
-        limit_name=limit_name,
-        max=10.00  # $10 USD limit
-    )
-    limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
-except Exception as e:
-    exit(f"Error creating limit: {e}")
+limit_name = "QuickStart Limit"
+limit_response = payi_client.limits.create(
+    limit_name=limit_name,
+    max=10.00  # $10 USD limit
+)
+limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
 
 # Make a standard API call, just like we would with regular OpenAI
 with track_context(request_tags=["standard-request"], limit_ids=[limit_id]):

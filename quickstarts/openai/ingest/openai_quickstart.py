@@ -17,15 +17,12 @@ payi_instrument()  # Automatically creates payi sync/async clients using environ
 openai_client = OpenAI()  # Uses OPENAI_API_KEY environment variable
 
 # Create a limit (optional)
-try:
-    limit_name = "QuickStart Limit"
-    limit_response = payi_client.limits.create(
-        limit_name=limit_name,
-        max=10.00  # $10 USD limit
-    )
-    limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
-except Exception as e:
-    exit(f"Error creating limit: {e}")
+limit_name = "QuickStart Limit"
+limit_response = payi_client.limits.create(
+    limit_name=limit_name,
+    max=10.00  # $10 USD limit
+)
+limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
 
 # Make a standard API call, just like we would with regular OpenAI
 with track_context(request_tags=["standard-request"], limit_ids=[limit_id]):
@@ -39,13 +36,7 @@ with track_context(request_tags=["standard-request"], limit_ids=[limit_id]):
 print("\nResponse:")
 print(f"---\n{response.choices[0].message.content}\n---")
 
-# Pay-i automatically captures tracking information like cost and request ID
-if hasattr(response, 'xproxy_result'):
-    cost_info = response.xproxy_result.get('cost', {})
-    request_id = response.xproxy_result.get('request_id', 'N/A')
-    print("\nPay-i tracking information:")
-    print(f"- Request ID: {request_id}")
-    print(f"- Cost: ${cost_info}")
+# Pay-i automatically captures tracking information like cost and request ID. xproxy_result is only available if the request was made through the Pay-i proxy.
 
 status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
 

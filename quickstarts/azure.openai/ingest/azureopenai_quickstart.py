@@ -20,21 +20,18 @@ payi_instrument()  # Automatically creates payi sync/async clients using environ
 # Initialize Azure OpenAI client with Pay-i integration
 azure_client = AzureOpenAI(
 # Expected environment variables:
-    # - AZURE_OPENAI_API_KEY=51a..57
+    # - AZURE_OPENAI_API_KEY=...
     # - AZURE_OPENAI_ENDPOINT=https://openai-xx-eastus.openai.azure.com/
     # - OPENAI_API_VERSION=2024-02-15-preview
 )
 
 # Create a limit (optional)
-try:
-    limit_name = "QuickStart Limit"
-    limit_response = payi_client.limits.create(
-        limit_name=limit_name,
-        max=10.00  # $10 USD limit
-    )
-    limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
-except Exception as e:
-    exit(f"Error creating limit: {e}")
+limit_name = "QuickStart Limit"
+limit_response = payi_client.limits.create(
+    limit_name=limit_name,
+    max=10.00  # $10 USD limit
+)
+limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
 
 # Make a standard API call, just like we would with regular Azure OpenAI
 with track_context(route_as_resource=AZURE_OPENAI_MODEL, resource_scope = AZURE_OPENAI_DEPLOYMENT_TYPE, request_tags=["standard-request"], limit_ids=[limit_id]):
@@ -48,13 +45,7 @@ with track_context(route_as_resource=AZURE_OPENAI_MODEL, resource_scope = AZURE_
 print("\nResponse:")
 print(f"---\n{response.choices[0].message.content}\n---")
 
-# Pay-i automatically captures tracking information like cost and request ID
-if hasattr(response, 'xproxy_result'):
-    cost_info = response.xproxy_result.get('cost', {})
-    request_id = response.xproxy_result.get('request_id', 'N/A')
-    print("\nPay-i tracking information:")
-    print(f"- Request ID: {request_id}")
-    print(f"- Cost: ${cost_info}")
+# Pay-i automatically captures tracking information like cost and request ID. xproxy_result is only available if the request was made through the Pay-i proxy.
 
 status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
     
@@ -71,7 +62,7 @@ with track_context(route_as_resource=AZURE_OPENAI_MODEL, resource_scope = AZURE_
         messages=[{"role": "user", "content": "Write a short poem about AI cost efficiency."}],
         max_tokens=100,
         stream=True
-)
+    )
 
 
 # Process the streaming response
@@ -86,17 +77,16 @@ for chunk in stream:
 print("\n---")
 
 # Check final limit status
-if limit_id:
-    status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
+status = payi_client.limits.retrieve(limit_id=limit_id)  # Retrieve current limit status
     
-    # Get the total cost from the limit status
-    total_cost = status.limit.totals.cost.total
-    if hasattr(total_cost, 'base'):
-        total_cost = total_cost.base  # Handle different cost object formats
+# Get the total cost from the limit status
+total_cost = status.limit.totals.cost.total
+if hasattr(total_cost, 'base'):
+    total_cost = total_cost.base  # Handle different cost object formats
         
-    usage_percent = (total_cost / status.limit.max) * 100  # Calculate usage percentage
+usage_percent = (total_cost / status.limit.max) * 100  # Calculate usage percentage
     
-    print(f"\nChecking final limit status...")
-    print(f"✓ Final usage: ${total_cost:.6f} of ${status.limit.max:.2f} ({usage_percent:.2f}%)")
+print(f"\nChecking final limit status...")
+print(f"✓ Final usage: ${total_cost:.6f} of ${status.limit.max:.2f} ({usage_percent:.2f}%)")
 
 print("Now you can check your Pay-i dashboard to see detailed metrics and costs.")
