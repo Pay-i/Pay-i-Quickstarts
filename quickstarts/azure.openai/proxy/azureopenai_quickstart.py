@@ -45,7 +45,7 @@ limit_response = payi_client.limits.create(
 limit_id = limit_response.limit.limit_id  # Store limit ID to track costs against it
 
 # Make a standard API call, just like we would with regular Azure OpenAI
-with track_context(request_tags=["standard-request"], limit_ids=[limit_id]):
+with track_context(limit_ids=[limit_id]):
     response = azure_client.chat.completions.create(
         model=AZURE_OPENAI_DEPLOYMENT,
         messages=[{"role": "user", "content": "Explain why value GenAI brings does in one sentence."}],
@@ -73,7 +73,7 @@ usage_percent = (total_cost / status.limit.max) * 100  # Calculate usage percent
 print(f"✓ Current usage: ${total_cost:.6f} of ${status.limit.max:.2f} ({usage_percent:.2f}%)")
 
 # Make streaming request
-with track_context(request_tags=["streaming-request"], limit_ids=[limit_id]):
+with track_context(limit_ids=[limit_id]):
     stream = azure_client.chat.completions.create(
         model=AZURE_OPENAI_DEPLOYMENT,
         messages=[{"role": "user", "content": "Write a short poem about AI cost efficiency."}],
